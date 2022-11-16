@@ -23,6 +23,8 @@ var rpc = map[string]interface{}{
 	"signin": signin,
 }
 
+var wsconn *websocket.Conn
+
 func connect() {
 	fmt.Println("start connecting...")
 	setupRoutes()
@@ -39,7 +41,7 @@ func setupRoutes() {
 
 func reader(conn *websocket.Conn) {
 	for {
-		messageType, p, err := conn.ReadMessage()
+		_, p, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
@@ -53,10 +55,10 @@ func reader(conn *websocket.Conn) {
 		}
 		call(method, param)
 
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
+		// if err := conn.WriteMessage(messageType, p); err != nil {
+		// 	log.Println(err)
+		// 	return
+		// }
 	}
 }
 

@@ -60,11 +60,20 @@ func signin(account string, password string) error {
 		if doc.Data()["account"] == account {
 			if doc.Data()["password"] == password {
 				fmt.Println("Login Successfully: ", account)
+				if err := wsconn.WriteMessage(2, []byte("onSignin,1")); err != nil {
+					log.Println(err)
+				}
 			} else {
 				fmt.Println("Login Failed")
+				if err := wsconn.WriteMessage(2, []byte("onSignin,0")); err != nil {
+					log.Println(err)
+				}
 			}
 		} else {
 			fmt.Println("Login Failed")
+			if err := wsconn.WriteMessage(2, []byte("onSignin,0")); err != nil {
+				log.Println(err)
+			}
 		}
 	}
 

@@ -15,6 +15,13 @@ export class Connection {
 
     this.socket.onmessage = (msg) => {
       console.log(msg)
+      this.blobToBase64(msg.data).then((data) => {
+        if (data && typeof data === "string") {
+            const rpc = atob(data.split(",")[1]);
+            console.log("onmessage: ", rpc)
+            this.onRpc(rpc.split(",")[0], rpc.split(",")[1]);
+        }
+      })
     }
 
     this.socket.onclose = (event) => {
@@ -30,5 +37,17 @@ export class Connection {
     console.log('write socket: ', rpc, args)
     var uint8array = new TextEncoder().encode(rpc + "," + args);
     this.socket.send(uint8array)
+  }
+
+  public onRpc(methodName: string, ...args: any[]): void {
+
+  }
+
+  private blobToBase64(blob: Blob): Promise<string | ArrayBuffer | null> {
+    return new Promise((resolve, _) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
   }
 }
