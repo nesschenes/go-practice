@@ -1,6 +1,8 @@
 export class Connection {
   public static inst: Connection
-  private socket = new WebSocket('ws://localhost:8888/ws')
+  public socket = new WebSocket('ws://localhost:8888/ws')
+  public rpcTable: Map<string, Function> = new Map()
+  public rpcQueue: { method: string; args: any[] }[] = []
 
   public constructor() {
     Connection.inst = this
@@ -11,15 +13,15 @@ export class Connection {
 
     this.socket.onopen = () => {
       console.log('Connected Successfully')
+      this.sendRpcInQueue();
     }
 
     this.socket.onmessage = (msg) => {
-      console.log(msg)
       this.blobToBase64(msg.data).then((data) => {
-        if (data && typeof data === "string") {
-            const rpc = atob(data.split(",")[1]);
-            console.log("onmessage: ", rpc)
-            this.onRpc(rpc.split(",")[0], rpc.split(",")[1]);
+        if (data && typeof data === 'string') {
+          const rpc = atob(data.split(',')[1])
+          console.log('onmessage: ', rpc)
+          this.onRpc(rpc.split(',')[0], rpc.split(',')[1])
         }
       })
     }
@@ -34,20 +36,41 @@ export class Connection {
   }
 
   public rpc(rpc: string, ...args: any[]): void {
+    if (this.socket.readyState != this.socket.OPEN) {
+      this.rpcQueue.push({ method: rpc, args: args })
+      return
+    }
     console.log('write socket: ', rpc, args)
-    var uint8array = new TextEncoder().encode(rpc + "," + args);
+    var uint8array = new TextEncoder().encode(rpc + ',' + args)
     this.socket.send(uint8array)
   }
 
   public onRpc(methodName: string, ...args: any[]): void {
+    if (!this.rpcTable.has(methodName)) return
+    this.rpcTable.get(methodName)?.(...args)
+  }
 
+  public register(methodName: string, method: Function): void {
+    this.rpcTable.set(methodName, method)
+  }
+
+  public unregister(methodName: string): void {
+    this.rpcTable.delete(methodName)
+  }
+
+  private sendRpcInQueue(): void {
+    while (this.rpcQueue.length > 0) {
+        const rpc = this.rpcQueue.shift();
+        if (!rpc) continue;
+        this.rpc(rpc.method, rpc.args);
+    }
   }
 
   private blobToBase64(blob: Blob): Promise<string | ArrayBuffer | null> {
     return new Promise((resolve, _) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.readAsDataURL(blob)
+    })
   }
 }

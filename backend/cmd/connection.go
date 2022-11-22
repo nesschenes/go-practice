@@ -19,8 +19,9 @@ var upgrader = websocket.Upgrader{
 }
 
 var rpc = map[string]interface{}{
-	"signup": signup,
-	"signin": signin,
+	"signUp":   signUp,
+	"signIn":   signIn,
+	"getImage": getImage,
 }
 
 var wsconn *websocket.Conn
@@ -70,6 +71,7 @@ func serve(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
+	wsconn = ws
 	reader(ws)
 }
 
@@ -86,6 +88,9 @@ func call(funcName string, params []interface{}) (result interface{}, err error)
 	}
 	var res []reflect.Value
 	res = f.Call(in)
+	if len(res) == 0 {
+		return
+	}
 	result = res[0].Interface()
 	return
 }

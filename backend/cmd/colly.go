@@ -43,7 +43,8 @@ func downloadFile(url string) {
 	fmt.Println("File downloaded!")
 }
 
-func request() {
+func getImage(url string) {
+	fmt.Println("getImage")
 	r := regexp.MustCompile(`\{(?:[^{}]|(\{(?:[^{}]|())*\}))*\}`)
 	c := colly.NewCollector()
 	c.OnHTML(".ac-gf-content", func(e *colly.HTMLElement) {
@@ -55,7 +56,10 @@ func request() {
 			fmt.Println(err)
 		}
 		fmt.Printf("%+v\n", apple)
-		downloadFile(apple.Logo)
+		// downloadFile(apple.Logo)
+		if err := wsconn.WriteMessage(2, []byte("onGetImage,"+apple.Logo)); err != nil {
+			log.Fatalf("Failed writting rpc onSignIn: %v", err)
+		}
 	})
 	c.OnResponse(func(r *colly.Response) {
 		// fmt.Println(string(r.Body))
@@ -63,5 +67,5 @@ func request() {
 	c.OnRequest((func(r *colly.Request) {
 		// r.Headers.Set("User-Agent", "...")
 	}))
-	c.Visit("https://www.apple.com/tw") // robots.txt -> User-agent: *
+	c.Visit(url) // robots.txt -> User-agent: *
 }

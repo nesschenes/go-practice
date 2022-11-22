@@ -38,8 +38,8 @@ func client() (*firestore.Client, error) {
 	return client, nil
 }
 
-func signin(account string, password string) error {
-	fmt.Println("signin: ", account, password)
+func signIn(account string, password string) error {
+	fmt.Println("signIn: ", account, password)
 
 	client, err := client()
 	if err != nil {
@@ -47,6 +47,7 @@ func signin(account string, password string) error {
 		return err
 	}
 
+	errorCode := 2
 	iter := client.Collection("users").Documents(context.Background())
 	for {
 		doc, err := iter.Next()
@@ -59,21 +60,25 @@ func signin(account string, password string) error {
 		fmt.Println(doc.Data())
 		if doc.Data()["account"] == account {
 			if doc.Data()["password"] == password {
+				errorCode = 0
 				fmt.Println("Login Successfully: ", account)
-				if err := wsconn.WriteMessage(2, []byte("onSignin,1")); err != nil {
-					log.Println(err)
+				if err := wsconn.WriteMessage(2, []byte("onSignIn,0")); err != nil {
+					log.Fatalf("Failed writting rpc onSignIn: %v", err)
 				}
 			} else {
+				errorCode = 1
 				fmt.Println("Login Failed")
-				if err := wsconn.WriteMessage(2, []byte("onSignin,0")); err != nil {
-					log.Println(err)
+				if err := wsconn.WriteMessage(2, []byte("onSignIn,1")); err != nil {
+					log.Fatalf("Failed writting rpc onSignIn: %v", err)
 				}
 			}
-		} else {
-			fmt.Println("Login Failed")
-			if err := wsconn.WriteMessage(2, []byte("onSignin,0")); err != nil {
-				log.Println(err)
-			}
+		}
+	}
+
+	if errorCode != 0 && errorCode != 1 {
+		fmt.Println("Login Failed")
+		if err := wsconn.WriteMessage(2, []byte("onSignIn,2")); err != nil {
+			log.Fatalf("Failed writting rpc onSignIn: %v", err)
 		}
 	}
 
@@ -81,8 +86,8 @@ func signin(account string, password string) error {
 	return nil
 }
 
-func signup(firstName string, lastName string, account string, password string) error {
-	fmt.Println("signup: ", firstName, lastName, account, password)
+func signUp(firstName string, lastName string, account string, password string) error {
+	fmt.Println("signUp: ", firstName, lastName, account, password)
 
 	client, err := client()
 	if err != nil {
@@ -98,7 +103,14 @@ func signup(firstName string, lastName string, account string, password string) 
 	})
 	if err != nil {
 		log.Fatalf("Failed adding alovelace: %v", err)
+		if wserr := wsconn.WriteMessage(2, []byte("onSignUp,1")); wserr != nil {
+			log.Fatalf("Failed writting rpc onSignUp: %v", wserr)
+		}
 		return err
+	} else {
+		if wserr := wsconn.WriteMessage(2, []byte("onSignUp,0")); wserr != nil {
+			log.Fatalf("Failed writting rpc onSignUp: %v", wserr)
+		}
 	}
 
 	defer client.Close()
