@@ -19,9 +19,10 @@ var upgrader = websocket.Upgrader{
 }
 
 var rpc = map[string]interface{}{
-	"signUp":   signUp,
-	"signIn":   signIn,
-	"getImage": getImage,
+	"signUp":     signUp,
+	"signIn":     signIn,
+	"getImage":   getImage,
+	"checkLogon": checkLogon,
 }
 
 var wsconn *websocket.Conn

@@ -3,6 +3,7 @@ import { Alert, Button, TextField } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { Connection } from '../Connection'
 import { useNavigate } from 'react-router-dom'
+import { Cookies } from 'react-cookie'
 
 export interface ISignInPageProps {}
 
@@ -11,15 +12,21 @@ function signIn(account: string, password: string): void {
   Connection.inst.rpc('signIn', [account, password])
 }
 
+function setToken(token: string): void {
+  const cookies = new Cookies()
+  cookies.set('token', token)
+}
+
 export const SignInPage: React.FC<ISignInPageProps> = (props) => {
   const navigate = useNavigate()
 
   useEffect(() => {
-    Connection.inst.register('onSignIn', (code: number) => {
-      console.log('onSignIn: ', code)
-      code = Number(code);
+    Connection.inst.register('onSignIn', (code: number, token: string) => {
+      console.log('onSignIn: ', code, token)
+      code = Number(code)
       switch (code) {
         case 0:
+          setToken(token)
           navigate('/colly')
           break
         case 1:

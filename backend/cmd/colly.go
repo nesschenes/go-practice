@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -44,22 +43,27 @@ func downloadFile(url string) {
 }
 
 func getImage(url string) {
-	fmt.Println("getImage")
-	r := regexp.MustCompile(`\{(?:[^{}]|(\{(?:[^{}]|())*\}))*\}`)
+	fmt.Println("getImage: ", url)
+	result := []string{}
 	c := colly.NewCollector()
-	c.OnHTML(".ac-gf-content", func(e *colly.HTMLElement) {
+	c.OnHTML("img[src]", func(e *colly.HTMLElement) {
 		// fmt.Println(r.FindString(e.Text))
-		apple := Apple{}
-		jsonString := r.FindString(e.Text)
-		err := json.Unmarshal([]byte(jsonString), &apple)
-		if err != nil {
-			fmt.Println(err)
+		src := e.Attr("src")
+		if src == "" {
+			return
 		}
-		fmt.Printf("%+v\n", apple)
-		// downloadFile(apple.Logo)
-		if err := wsconn.WriteMessage(2, []byte("onGetImage,"+apple.Logo)); err != nil {
-			log.Fatalf("Failed writting rpc onSignIn: %v", err)
-		}
+		result = append(result, src)
+		// apple := Apple{}
+		// jsonString := r.FindString(e.Text)
+		// err := json.Unmarshal([]byte(jsonString), &apple)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		// fmt.Printf("%+v\n", apple)
+		// // downloadFile(apple.Logo)
+		// if err := wsconn.WriteMessage(2, []byte("onGetImage,"+apple.Logo)); err != nil {
+		// 	log.Fatalf("Failed writting rpc onGetImage: %v", err)
+		// }
 	})
 	c.OnResponse(func(r *colly.Response) {
 		// fmt.Println(string(r.Body))
@@ -67,5 +71,38 @@ func getImage(url string) {
 	c.OnRequest((func(r *colly.Request) {
 		// r.Headers.Set("User-Agent", "...")
 	}))
+	c.OnScraped((func(r *colly.Response) {
+		fmt.Println(result)
+		if err := wsconn.WriteMessage(2, []byte("onGetImage,"+strings.Join(result, " "))); err != nil {
+			log.Fatalf("Failed writting rpc onGetImage: %v", err)
+		}
+	}))
 	c.Visit(url) // robots.txt -> User-agent: *
 }
+
+// func getImage(url string) {
+// 	fmt.Println("getImage")
+// 	r := regexp.MustCompile(`\{(?:[^{}]|(\{(?:[^{}]|())*\}))*\}`)
+// 	c := colly.NewCollector()
+// 	c.OnHTML(".ac-gf-content", func(e *colly.HTMLElement) {
+// 		// fmt.Println(r.FindString(e.Text))
+// 		apple := Apple{}
+// 		jsonString := r.FindString(e.Text)
+// 		err := json.Unmarshal([]byte(jsonString), &apple)
+// 		if err != nil {
+// 			fmt.Println(err)
+// 		}
+// 		fmt.Printf("%+v\n", apple)
+// 		// downloadFile(apple.Logo)
+// 		if err := wsconn.WriteMessage(2, []byte("onGetImage,"+apple.Logo)); err != nil {
+// 			log.Fatalf("Failed writting rpc onGetImage: %v", err)
+// 		}
+// 	})
+// 	c.OnResponse(func(r *colly.Response) {
+// 		// fmt.Println(string(r.Body))
+// 	})
+// 	c.OnRequest((func(r *colly.Request) {
+// 		// r.Headers.Set("User-Agent", "...")
+// 	}))
+// 	c.Visit(url) // robots.txt -> User-agent: *
+// }

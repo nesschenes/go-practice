@@ -21,7 +21,8 @@ export class Connection {
         if (data && typeof data === 'string') {
           const rpc = atob(data.split(',')[1])
           console.log('onmessage: ', rpc)
-          this.onRpc(rpc.split(',')[0], rpc.split(',')[1])
+          const r = rpc.split(',');
+          this.onRpc(r[0], r.slice(1))
         }
       })
     }
@@ -47,7 +48,7 @@ export class Connection {
 
   public onRpc(methodName: string, ...args: any[]): void {
     if (!this.rpcTable.has(methodName)) return
-    this.rpcTable.get(methodName)?.(...args)
+    this.rpcTable.get(methodName)?.apply(this, ...args)
   }
 
   public register(methodName: string, method: Function): void {
